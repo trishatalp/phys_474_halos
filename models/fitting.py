@@ -29,12 +29,19 @@ def residuals(v_obs, v_model):
     return np.asarray(v_obs) - v_model
 
 def chi_squared(params, radius, v_obs, v_err, v_bar_squared, model, config):
-    halo = HALOS[model].velocity(radius, 10**params[0], params[1], config.g, config.h0)
-    try:
-        predicted = total_velocity(v_bar_squared, halo)
-    except ValueError:
-        return np.inf
-    return float(np.sum((residuals(v_obs, predicted)/v_err)**2))
+    return float(chi_squared_batch(np.asarray(params)[None, :], radius, v_obs, v_err,
+                                   v_bar_squared, model, config)[0])
+
+def chi_squared_batch(params, radius, v_obs, v_err, v_bar_squared, model, config):
+    """Evaluate the same objective independently for each parameter pair."""
+    mass = 10.0**params[:, :1]
+    concentration = params[:, 1:]
+    halo = HALOS[model].velocity(radius, mass, concentration, config.g, config.h0)
+    squared = v_bar_squared + halo**2
+    valid = np.all(np.isfinite(squared) & (squared >= 0), axis=-1)
+    predicted = np.sqrt(np.where(valid[:, None], squared, 0))
+    chi2 = np.sum((residuals(v_obs, predicted) / v_err)**2, axis=-1)
+    return np.where(valid, chi2, np.inf)
 
 def bound_hits(params, config):
     return [bool(np.any(np.isclose(p, bounds, atol=config.bound_tolerance, rtol=0))) for p, bounds in zip(params, config.bounds)]

@@ -2,6 +2,8 @@
 old_notebooks/
 tests/
 notebooks/fit_results.ipynb
+data/processed/halo_fits/mcmc/chains/
+data/processed/halo_fits/mcmc/.run.lock
 
 # Template
 # Byte-compiled / optimized / DLL files

@@ -12,9 +12,17 @@ Install `requirements.txt` into the project environment and install `ipykernel` 
 4. `notebooks/4_sample_fitting.ipynb` fits all galaxies and exports the results.
 5. `notebooks/fit_results.ipynb` inspects saved diagnostics and figures without refitting.
 6. `notebooks/5_stellar_mass_halo_preference.ipynb` plots the fit preference against processed stellar mass.
-7. `notebooks/6_miscellaneous_plots.ipynb` shows the selected sample's stellar mass histogram with labeled extrema.
+7. `notebooks/7_report_figures.ipynb` fits each galaxy from one centered start and exports captioned report figures to `figures/report/`. Set the example bin indices in the notebook. Rotation-curve bands use the saved chains from `notebooks/7_mcmc_halo_fitting.ipynb`.
 
 Fit exports are in `data/processed/halo_fits/`; fitting figures are in `figures/halo_fits/`. Rerunning overwrites matching outputs. After changing upstream sample cuts, update the sample notebook's `SAMPLE_CUTS` metadata and regenerate fits. An input SHA-256 ties saved fits to the processed CSV.
+
+## Posterior sampling
+
+Run `python -m utils.mcmc_analysis --pilot` after installing the requirements and generating the baseline fits. This checks DDO154 and CamB in both halo models against independent posterior quadrature. Run `python -m utils.mcmc_analysis --workers 4` for the full sample. Notebook 7 provides the same workflow and displays the exports.
+
+Priors are uniform in log₁₀ halo mass and linear concentration within the saved baseline bounds. The intervals condition on the adopted baryonic mass-to-light ratios, distances, inclinations, and reported velocity errors. Exports live under `data/processed/halo_fits/mcmc/`. Rerun with the same output directory to resume from the most recent complete block. Use `--output` for a separate run. Chain blocks have shape (step, walker, parameter), with log mass in the first column and concentration in the second. The summary records the selected ensemble and the burn-in length across the concatenated blocks.
+
+`results.csv` records the saved and checked SciPy minima, posterior quantiles, and convergence diagnostics. An unresolved chain retains provisional quantiles for inspection. The boundary flag marks at least 5% posterior mass within the outer 1% of either prior span, measured in log mass and log concentration. `model_preference.csv` reports NFW-minus-Burkert BIC and uses ±2 for the preference categories. The χ² reference p-values and the flag for both values below 0.05 are descriptive because active bounds and observational systematics can affect their calibration. `stellar_mass_bins.csv` reports counts and fractions in one-dex bins using all pairs of verified minima.
 
 ## Physics and interpretation
 
@@ -24,7 +32,7 @@ Fits preserve the original fixed disk/bulge mass-to-light ratios (0.5/0.7), nine
 
 Data processing uses the same ratios to estimate stellar mass from total and bulge luminosities and stores the result in `stellar_mass_msun`. The halo preference notebook plots raw NFW-minus-Burkert chi-squared versus log stellar mass. It exports PNG/PDF figures under `figures/halo_preference/` and the plotted table under `data/processed/halo_fits/`. Physical gas mass estimates remain deferred. Halo enclosed masses are provided by the specified halo profiles.
 
-`fit_galaxy` and `fit_sample` return `GalaxyFitResult` records without file I/O. `result_tables` converts records into summary, attempts, and predictions tables. Invalid galaxies remain in the summary; individual failed starts remain in attempts. A successful optimizer status does not establish physical fit quality. Boundary flags use an absolute tolerance of 1e-5 in fitted parameter coordinates. Uncertainties in fitted parameters and variable mass-to-light ratios are not implemented.
+`fit_galaxy` and `fit_sample` return `GalaxyFitResult` records without file I/O. `result_tables` converts records into summary, attempts, and predictions tables. Invalid galaxies remain in the summary; individual failed starts remain in attempts. A successful optimizer status does not establish physical fit quality. Boundary flags use an absolute tolerance of 1e-5 in fitted parameter coordinates.
 
 ## Data tables
 

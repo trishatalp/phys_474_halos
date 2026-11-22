@@ -3,7 +3,8 @@
 import matplotlib.pyplot as plt
 
 
-def plot_rotation_curve(galaxy):
+def plot_rotation_curve(galaxy, *, ax=None, observed_color="#176B91",
+                        error_color="#5595AE", mass_to_light=(0.5, 0.7)):
     """Return a figure and axes for one galaxy's observed rotation curve.
 
     Accept rows with processed stellar mass attached. Error bars show the
@@ -16,12 +17,16 @@ def plot_rotation_curve(galaxy):
     properties = galaxy.iloc[0]
 
     mass = properties["stellar_mass_msun"]
-    fig, ax = plt.subplots(figsize=(7.2, 5.1), layout="constrained")
+    coefficient, exponent = f"{mass:.2e}".split("e")
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(7.2, 5.1), layout="constrained")
+    else:
+        fig = ax.figure
     ax.errorbar(
         galaxy["radius"], galaxy["v_obs"], yerr=galaxy["v_err"],
-        fmt="o", markersize=4.5, color="#176B91",
+        fmt="o", markersize=4.5, color=observed_color,
         markeredgecolor="white", markeredgewidth=0.5,
-        ecolor="#5595AE", elinewidth=1.2, capsize=2.5,
+        ecolor=error_color, elinewidth=1.2, capsize=2.5,
         label="Observed (SPARC)", zorder=3,
     )
     ax.set_title(str(properties["galaxy"]), loc="left", fontsize=16, weight="bold", pad=43)
@@ -30,8 +35,8 @@ def plot_rotation_curve(galaxy):
         f"D = {properties['distance']:g} Mpc  |  "
         f"i = {properties['inclination']:g} ± {properties['inclination_error']:g}°  |  "
         f"Quality {int(properties['quality_flag'])}  |  {len(galaxy)} measurements\n"
-        + rf"Estimated stellar mass: $M_\star = {mass:.2e}\,M_\odot$"
-        + r"  ($\Upsilon_{\rm disk}=0.5$, $\Upsilon_{\rm bulge}=0.7$)",
+        + rf"Estimated stellar mass $M_\star = {coefficient}\times10^{{{int(exponent)}}}\,M_\odot$"
+        + rf"  ($\Upsilon_{{\rm disk}}={mass_to_light[0]:g}$, $\Upsilon_{{\rm bulge}}={mass_to_light[1]:g}$)",
         transform=ax.transAxes, fontsize=9, color="#555555",
     )
     ax.set_xlabel("Galactocentric radius (kpc)", fontsize=11)

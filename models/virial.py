@@ -27,4 +27,5 @@ def validate_radius(radius, concentration):
     return radius
 
 def circular_velocity(radius, mass, g=G):
-    return np.sqrt(np.divide(g * mass, radius, out=np.zeros_like(radius), where=radius > 0))
+    radius, mass = np.broadcast_arrays(radius, mass)
+    return np.sqrt(np.divide(g * mass, radius, out=np.zeros_like(radius, dtype=float), where=radius > 0))
