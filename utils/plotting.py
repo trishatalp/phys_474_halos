@@ -126,7 +126,7 @@ def plot_fit_summary(summary):
     return fig, axes
 
 
-def plot_halo_preference_vs_stellar_mass(comparison, *, centered=False, encoding="bounds"):
+def plot_halo_preference_vs_stellar_mass(comparison, *, centered=False, encoding="mass"):
     """Plot halo preference for one selection with scales shared across selections."""
     from matplotlib.colors import Normalize
     from matplotlib.lines import Line2D
@@ -140,15 +140,9 @@ def plot_halo_preference_vs_stellar_mass(comparison, *, centered=False, encoding
         title, delta, prefix = "Centered start only", "centered_delta_chi2", "centered"
     else:
         title, delta, prefix = "Best of all starts", "delta_chi2", "best"
-    touched = comparison[[
-        f"{prefix}_evaluated_at_bound_nfw", f"{prefix}_evaluated_at_bound_burkert"
-    ]].eq(True).any(axis=1)
-    if encoding == "bounds":
-        groups = (
-            (~touched, "o", True, "No bound contact"),
-            (touched, "D", True, "Evaluated at a bound"),
-        )
-        detail = "Bound contact"
+    if encoding == "mass":
+        groups = ((comparison[delta].notna(), "o", True, ""),)
+        detail = "All galaxies"
     elif encoding == "coverage":
         groups = (
             (filled, "o", True, r"At least 3 points within $2R_{\rm disk}$"),
@@ -183,7 +177,8 @@ def plot_halo_preference_vs_stellar_mass(comparison, *, centered=False, encoding
     fig.suptitle("Halo fit preference by stellar mass\nPositive favors Burkert | Negative favors NFW")
     fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=colors), ax=ax,
                  label="Innermost measured radius / disk scale length")
-    fig.legend(handles=handles, loc="outside lower center", ncols=2)
+    if encoding == "coverage":
+        fig.legend(handles=handles, loc="outside lower center", ncols=2)
     return fig, ax
 
 
