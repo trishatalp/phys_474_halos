@@ -1,4 +1,8 @@
-"""Run the pilot and sample analysis using the saved baseline fit configuration."""
+"""Run posterior sampling for galaxies with successful baseline fits.
+
+Check the two pilot galaxies against quadrature before writing full-sample results.
+"""
+
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import contextmanager
@@ -65,7 +69,23 @@ def check_pilot(posterior, chain, discard):
     return float(max(grid_error)), float(max(chain_error))
 
 
+def posterior_intervals(chain, discard, config):
+    """Compute marginal quantiles and the probability near each prior boundary."""
+    samples = chain[discard:].reshape(-1, 2)
+    log_mass, concentration = samples.T
+    quantiles = np.quantile(np.column_stack([log_mass, 10**log_mass, concentration]), PROBABILITIES, axis=0)
+    # Use equal fractions of the log span to inspect both ends of c's six-decade support.
+    coordinates = np.column_stack([log_mass, np.log10(concentration)])
+    lower, upper = np.array(config.bounds, dtype=float).T.copy()
+    lower[1], upper[1] = np.log10([lower[1], upper[1]])
+    width = 0.01 * (upper - lower)
+    near_low = np.mean(coordinates <= lower + width, axis=0)
+    near_high = np.mean(coordinates >= upper - width, axis=0)
+    return quantiles, near_low, near_high
+
+
 def analyze_fit(task):
+    """Check a saved minimum, sample its posterior, and assemble one results row."""
     (galaxy, fit, config, settings, output, metadata, pilot) = task
     name, model = fit["galaxy"], fit["model"]
     original = np.array([fit["log_m200"], fit["concentration"]])
@@ -107,6 +127,7 @@ def analyze_fit(task):
                                f"converged={converged}, grid error={grid_error:.4g}, "
                                f"chain error={chain_error:.4g}")
 
+    # If a walker finds a lower objective, start a new optimizer run from that draw.
     best, minimum = original, fit["chi2"]
     improved = posterior.chi2(best_sample)[0] < minimum - config.agreement_delta_chi2
     updated = False
@@ -117,16 +138,7 @@ def analyze_fit(task):
             best, minimum = refined.x, float(refined.fun)
             updated = True
 
-    samples = chain[discard:].reshape(-1, 2)
-    mass, concentration = samples.T
-    quantiles = np.quantile(np.column_stack([mass, 10**mass, concentration]), PROBABILITIES, axis=0)
-    # Use equal fractions of the log span to inspect both ends of c's six-decade support.
-    coordinates = np.column_stack([mass, np.log10(concentration)])
-    lower, upper = np.array(config.bounds, dtype=float).T.copy()
-    lower[1], upper[1] = np.log10([lower[1], upper[1]])
-    width = 0.01 * (upper - lower)
-    near_low = np.mean(coordinates <= lower + width, axis=0)
-    near_high = np.mean(coordinates >= upper - width, axis=0)
+    quantiles, near_low, near_high = posterior_intervals(chain, discard, config)
     mass_hit, concentration_hit = bound_hits(best, config)
     report = dict(fit, scipy_refined=updated, minimum_verified=not improved or updated,
                   scipy_log_m200=best[0], scipy_m200=10**best[0], scipy_concentration=best[1],

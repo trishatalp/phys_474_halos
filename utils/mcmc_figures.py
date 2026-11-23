@@ -1,4 +1,8 @@
-"""Export posterior diagnostics and stellar-mass preference comparisons."""
+"""Plot posterior diagnostics and compare model preferences across stellar masses.
+
+Read the saved chains for velocity bands and use paired fit summaries for the population figures.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

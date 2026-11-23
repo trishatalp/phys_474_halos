@@ -1,4 +1,8 @@
-"""Virial quantities defined at 200 times the critical density."""
+"""Convert between halo mass, virial radius, and circular speed.
+
+R200 encloses a sphere whose mean density is 200 times the critical density.
+"""
+
 import numpy as np
 from .constants import G, H0
 
@@ -15,10 +19,6 @@ def r200(m200, g=G, h0=H0):
     positive(m200, "M200")
     return (3 * np.asarray(m200) / (4 * np.pi * 200 * critical_density(g, h0)))**(1/3)
 
-def virial_parameters(m200, g=G, h0=H0):
-    radius = r200(m200, g, h0)
-    return radius, np.sqrt(g * m200 / radius)
-
 def validate_radius(radius, concentration):
     positive(concentration, "concentration")
     radius = np.asarray(radius, dtype=float)
@@ -28,4 +28,7 @@ def validate_radius(radius, concentration):
 
 def circular_velocity(radius, mass, g=G):
     radius, mass = np.broadcast_arrays(radius, mass)
-    return np.sqrt(np.divide(g * mass, radius, out=np.zeros_like(radius, dtype=float), where=radius > 0))
+    # Both profiles have zero circular speed at the origin.
+    speed_squared = np.zeros_like(radius, dtype=float)
+    np.divide(g * mass, radius, out=speed_squared, where=radius > 0)
+    return np.sqrt(speed_squared)

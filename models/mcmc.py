@@ -1,4 +1,8 @@
-"""Posterior, ensemble sampling, and two-dimensional quadrature for SPARC fits."""
+"""Sample the joint posterior of log halo mass and concentration.
+
+Save resumable walker chains and check their marginal distributions against numerical quadrature.
+"""
+
 from dataclasses import dataclass
 
 import emcee
@@ -69,6 +73,7 @@ def initialize_walkers(posterior, center, count, rng, dispersed=False):
 
 
 def chain_diagnostics(chain, previous_tau):
+    """Estimate burn-in and check the length and stability of the remaining chain."""
     tau = emcee.autocorr.integrated_time(chain, tol=0)
     if not np.isfinite(tau).all() or np.any(tau <= 0):
         return 0, np.full(2, np.nan), False
@@ -141,6 +146,9 @@ def grid_marginals(posterior, resolution):
     log_density = np.empty((len(x_mid), len(c_mid)))
     for index, mass in enumerate(x_mid):
         log_density[index] = posterior(np.column_stack([np.full_like(c_mid, mass), c_mid]))
+    # Grid cells have unequal areas. Integrate in log mass and linear concentration.
     log_weight = log_density + np.log(np.diff(x))[:, None] + np.log(np.diff(c))
     weight = np.exp(log_weight - logsumexp(log_weight))
-    return (x, c), tuple(np.r_[0, np.cumsum(weight.sum(axis=axis))] for axis in (1, 0))
+    mass_cdf = np.r_[0, np.cumsum(weight.sum(axis=1))]
+    concentration_cdf = np.r_[0, np.cumsum(weight.sum(axis=0))]
+    return (x, c), (mass_cdf, concentration_cdf)

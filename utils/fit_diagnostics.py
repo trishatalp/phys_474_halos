@@ -1,4 +1,8 @@
-"""Summaries of every optimizer start, not just the selected best fit."""
+"""Compare optimizer starts across galaxies and halo models.
+
+Track contact with parameter bounds and count starts that recover the best chi-squared.
+"""
+
 import numpy as np
 from models.fitting import bound_hits
 
@@ -8,11 +12,16 @@ def initialization_diagnostics(attempts, summary, config):
     detail = attempts.copy()
     if detail.duplicated(["galaxy", "model", "start"]).any():
         raise ValueError("Duplicate optimizer attempts")
+
+    # Starts are numbered from one in the same nested order as initial_guesses.
     factors = [(m, c) for m in config.factors for c in config.factors]
     detail["mass_factor"] = [factors[int(i)-1][0] for i in detail.start]
     detail["concentration_factor"] = [factors[int(i)-1][1] for i in detail.start]
     detail["centered"] = (detail.mass_factor == 1) & (detail.concentration_factor == 1)
-    detail["converged"] = detail.success & np.isfinite(detail.chi2) & np.isfinite(detail.log_m200) & np.isfinite(detail.concentration)
+    finite_endpoint = np.isfinite(detail[["chi2", "log_m200", "concentration"]]).all(axis=1)
+    detail["converged"] = detail.success & finite_endpoint
+
+    # A fit can touch a bound during optimization and still finish in the interior.
     hits = [bound_hits([r.log_m200, r.concentration], config) for r in detail.itertuples()]
     detail["mass_bound_hit"] = [h[0] for h in hits]
     detail["concentration_bound_hit"] = [h[1] for h in hits]
@@ -21,7 +30,9 @@ def initialization_diagnostics(attempts, summary, config):
     detail["converged_interior"] = detail.converged & ~detail.any_bound_hit
     detail["interior_touched_bound"] = detail.converged_interior & detail.evaluated_at_bound
     detail["interior_no_contact"] = detail.converged_interior & ~detail.evaluated_at_bound
-    detail = detail.merge(summary[["galaxy", "model", "chi2"]].rename(columns={"chi2":"best_chi2"}), on=["galaxy", "model"], validate="many_to_one")
+
+    best = summary[["galaxy", "model", "chi2"]].rename(columns={"chi2": "best_chi2"})
+    detail = detail.merge(best, on=["galaxy", "model"], validate="many_to_one")
     detail["matches_best"] = detail.converged & ((detail.chi2-detail.best_chi2).abs() < config.agreement_delta_chi2)
     report = detail.groupby(["model", "start", "mass_factor", "concentration_factor"], as_index=False).agg(
         attempts=("start", "size"), successes=("converged", "sum"),

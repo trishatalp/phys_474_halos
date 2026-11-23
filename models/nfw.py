@@ -1,4 +1,8 @@
-"""NFW halo; concentration is R200 / scale radius."""
+"""Evaluate the enclosed mass and circular speed of an NFW halo.
+
+The concentration is R200 divided by the scale radius. The enclosed mass at R200 is M200.
+"""
+
 import numpy as np
 from .constants import G, H0
 from .virial import r200, validate_radius, circular_velocity
@@ -12,8 +16,9 @@ def _shape(x):
 def enclosed_mass(radius, m200, concentration, g=G, h0=H0):
     radius = validate_radius(radius, concentration)
     x = radius * concentration / r200(m200, g, h0)
+    # At R200, x equals concentration, so this ratio gives unit enclosed mass fraction.
     return m200 * _shape(x) / _shape(concentration)
 
 def velocity(radius, m200, concentration, g=G, h0=H0):
-    radius = validate_radius(radius, concentration)
-    return circular_velocity(radius, enclosed_mass(radius, m200, concentration, g, h0), g)
+    mass = enclosed_mass(radius, m200, concentration, g, h0)
+    return circular_velocity(radius, mass, g)

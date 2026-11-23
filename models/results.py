@@ -1,4 +1,8 @@
-"""Serializable fit configuration and result tables. No file I/O."""
+"""Define the settings and output records shared by the halo fits.
+
+Convert the per-galaxy records to summary, optimizer-attempt, and radial-prediction tables.
+"""
+
 from dataclasses import dataclass, field, asdict
 import numpy as np
 import pandas as pd
@@ -18,7 +22,10 @@ class FitConfig:
     bound_tolerance: float = 1e-5
 
     def __post_init__(self):
-        if not np.isfinite([self.g, self.h0, self.y_disk, self.y_bulge]).all() or min(self.g, self.h0) <= 0 or min(self.y_disk, self.y_bulge) < 0:
+        constants = [self.g, self.h0, self.y_disk, self.y_bulge]
+        positive_scales = self.g > 0 and self.h0 > 0
+        valid_ratios = self.y_disk >= 0 and self.y_bulge >= 0
+        if not np.isfinite(constants).all() or not positive_scales or not valid_ratios:
             raise ValueError("Invalid constants or mass-to-light ratios")
         if self.bounds is None:
             # Li et al. (2020), section 2.3, page 4. Convert V200 to log10(M200/Msun).
@@ -26,8 +33,11 @@ class FitConfig:
                                 for v in (10.0, 500.0))
             # The halo formulas require positive concentration.
             object.__setattr__(self, "bounds", (mass_limits, (0.001, 1000.0)))
-        b = np.asarray(self.bounds)
-        if b.shape != (2, 2) or not np.isfinite(b).all() or np.any(b[:, 0] >= b[:, 1]) or b[1, 0] <= 0:
+        bounds = np.asarray(self.bounds)
+        if bounds.shape != (2, 2) or not np.isfinite(bounds).all():
+            raise ValueError("Invalid parameter bounds")
+        lower, upper = bounds.T
+        if np.any(lower >= upper) or lower[1] <= 0:
             raise ValueError("Invalid parameter bounds")
         if not self.factors or not np.isfinite(self.factors).all() or min(self.factors) <= 0:
             raise ValueError("Initialization factors must be positive")

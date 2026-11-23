@@ -1,4 +1,8 @@
-"""Stellar masses from SPARC 3.6-micron luminosities, in solar units."""
+"""Estimate stellar mass from SPARC 3.6-micron luminosities.
+
+Apply separate mass-to-light ratios to the disk and bulge before adding their masses.
+"""
+
 import numpy as np
 from .constants import Y_DISK, Y_BULGE
 

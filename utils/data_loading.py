@@ -1,7 +1,6 @@
-"""Load SPARC data using the sample selection from rotation_curves.ipynb.
+"""Read the SPARC catalog, bulge luminosities, and radial measurements.
 
-Loaders return fresh DataFrames and do not write intermediate CSV files.
-Default source paths are relative to this repository, not the working directory.
+Return fresh tables with sample cuts and stellar masses for the analysis notebooks.
 """
 
 from io import StringIO

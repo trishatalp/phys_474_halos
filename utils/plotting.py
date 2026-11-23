@@ -1,4 +1,7 @@
-"""Reusable plotting helpers for SPARC rotation curves."""
+"""Plot observed rotation curves, halo fits, and optimizer diagnostics.
+
+The notebooks choose which galaxies to show and where to save the returned figures.
+"""
 
 import matplotlib.pyplot as plt
 
@@ -142,9 +145,9 @@ def plot_halo_preference_vs_stellar_mass(comparison, *, centered=False, encoding
     norm = Normalize(vmin=0, vmax=ratio.max())
     filled = comparison.inner_point_count.ge(3)
     if centered:
-        title, delta, prefix = "Centered start only", "centered_delta_chi2", "centered"
+        title, delta = "Centered start only", "centered_delta_chi2"
     else:
-        title, delta, prefix = "Best of all starts", "delta_chi2", "best"
+        title, delta = "Best of all starts", "delta_chi2"
     if encoding == "mass":
         groups = ((comparison[delta].notna(), "o", True, ""),)
         detail = "All galaxies"
@@ -244,7 +247,12 @@ def plot_initialization_diagnostics(report):
             ax.bar(rows.start, heights, bottom=bottom, label=label, color=color)
             bottom = bottom+heights
         ax.plot(rows.start, rows.best_matches, "ko--", markersize=4, label="Matches best chi²")
-        labels = [f"{r.start}: {r.mass_factor:g} × {r.concentration_factor:g}" + ("\nCENTERED" if r.mass_factor == r.concentration_factor == 1 else "") for r in rows.itertuples()]
+        labels = []
+        for row in rows.itertuples():
+            label = f"{row.start}: {row.mass_factor:g} × {row.concentration_factor:g}"
+            if row.mass_factor == row.concentration_factor == 1:
+                label += "\nCENTERED"
+            labels.append(label)
         ax.set_xticks(rows.start, labels)
         ax.set(title=model.upper(), ylabel="Number of fits", ylim=(0, rows.attempts.max()*1.15), xlabel="Start: mass factor × concentration factor")
         ax.legend(fontsize=8, ncol=5, loc="upper center")
