@@ -1,0 +1,41 @@
+{
+  "fit": {
+    "g": 4.30091e-06,
+    "h0": 0.07,
+    "y_disk": 0.5,
+    "y_bulge": 0.7,
+    "bounds": [
+      [
+        8.521341605297804,
+        13.61825161830586
+      ],
+      [
+        0.001,
+        1000.0
+      ]
+    ],
+    "factors": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "method": "L-BFGS-B",
+    "optimizer_options": {},
+    "agreement_delta_chi2": 0.01,
+    "bound_tolerance": 1e-05
+  },
+  "models": [
+    "nfw",
+    "burkert"
+  ],
+  "initialization": "maximum observed velocity; same heuristic for both halos; starts clipped to bounds",
+  "sample_cuts": {
+    "excluded_quality_flags": [
+      3
+    ],
+    "inclination_min": 30,
+    "inclination_max": 80
+  },
+  "input_path": "data\\processed\\selected_galaxy_rotation_curves.csv",
+  "input_sha256": "064ad3a1567ef98ee1d5e07d0c3d74d2901fbcfd4e2bcb7a18e138a8b66981d7"
+}
